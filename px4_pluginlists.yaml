@@ -1,0 +1,11 @@
+/**:
+  ros__parameters:
+    plugin_allowlist:
+      - "sys_status"
+      - "sys_time"
+      - "local_position"
+      - "setpoint_position"
+      - "setpoint_velocity"
+      - "setpoint_raw"
+      - "command"        # 必须保留：用于 Arm/Disarm 和切换 Offboard 模式
+      - "param"          # 必须保留：用于读取和设置飞控参数
