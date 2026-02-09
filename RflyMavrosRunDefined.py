@@ -3,15 +3,15 @@ import sys
 import RflyMavrosStart
 import os
 import json
+import math
+import re
 from Utils import get_package_src_directory
 
-hot_region_search_config = "config-9.json"
+# hot_region_search_config = "config-9.json"
 MAX_VEHICLE = 50
 
 # 获取配置文件路径 获取用户输入
-config_name_input = input("Please input hot-region number: ")
-
-# 检查是否是整数
+config_name_input = input("Please input hot-region-search config name: ")
 
 # 将初始位置写入自定义包json
 hot_region_search_config_file = os.path.join(get_package_src_directory(
@@ -43,10 +43,32 @@ launch_file = os.path.dirname(os.path.abspath(__file__)) + '/px4.launch.xml'  # 
 config_file = os.path.dirname(os.path.abspath(__file__)) + '/px4_config.yaml'  # 修改为你的yaml文件路径
 plugin_file = os.path.dirname(os.path.abspath(__file__)) + '/px4_pluginlists.yaml'  # 修改为你的yaml文件路径
 
-init_x = 0
-init_y = 0
-interval = 20
-sqrt_count = 3
+# 读取MavrosRunInit.bat文件，提取变量
+# 正则表达式解释：
+# ^SET\s+/a\s+ : 匹配行首的 SET /a（忽略大小写）
+# (\w+)        : 分组1，匹配变量名（字母、数字、下划线）
+# \s*=\s* : 匹配等号，允许前后有空格
+# ([\d.-]+)    : 分组2，匹配数值（支持整数、浮点数和负数）
+pattern = re.compile(r'^SET\s+/a\s+(\w+)\s*=\s*([\d.-]+)', re.IGNORECASE)
+variables = {}
+with open(os.path.join(os.path.dirname(__file__), 'MavrosRunInit.bat'), 'r', encoding='utf-8') as f:
+    for line in f:
+        # 去掉行首尾空格
+        line = line.strip()
+        match = pattern.match(line)
+        if match:
+            var_name = match.group(1)
+            var_value = match.group(2)
+            
+            # 尝试转换数值类型，优先转为 int，不行则转 float
+            if '.' in var_value:
+                variables[var_name] = float(var_value)
+            else:
+                variables[var_name] = int(var_value)
+init_x = variables.get('ORIGIN_POS_X', 0)
+init_y = variables.get('ORIGIN_POS_Y', 0)
+interval = variables.get('VEHICLE_INTERVAL', 20)
+sqrt_count = math.ceil(math.sqrt(VehicleNum))
 uav_init_positions = []
 
 for i in range(VehicleNum):
@@ -65,12 +87,12 @@ for i in range(VehicleNum):
     print(f'UAV {TargetID}: sendReSimIP')
     req.sendReSimUdpMode(TargetID,2) #強制切換MAVLINK_FULL
     print(f'UAV {TargetID}: sendReSimUdpMode')
-    uav_init_x = ((i - 1) // sqrt_count) * interval + init_x
-    uav_init_y = ((i - 1) % sqrt_count) * interval + init_y
-    req.sendReSimXYyaw(TargetID, [uav_init_x, uav_init_y, 0]) # 设置初始位置
+    uav_init_x = (i // sqrt_count) * interval + init_x
+    uav_init_y = (i % sqrt_count) * interval + init_y
+    # req.sendReSimXYyaw(TargetID, [uav_init_x, uav_init_y, 0]) # 设置初始位置
     print(f'UAV {TargetID}: sendReSimXYyaw - x: {uav_init_x}, y: {uav_init_y}, yaw: 0')
     uav_init_positions.append([uav_init_x, uav_init_y, 0])
-
+    
     ros = RflyMavrosStart.RflyMavrosStart(TargetID, 
                                           TargetIP, 
                                           namespace=namespace, 
