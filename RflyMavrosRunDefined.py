@@ -7,36 +7,28 @@ from Utils import get_package_src_directory
 
 hot_region_search_config = "config-9.json"
 MAX_VEHICLE = 50
+
+# 获取配置文件路径 获取用户输入
+config_name_input = input("Please input hot-region number: ")
+
+# 检查是否是整数
+
 # 将初始位置写入自定义包json
-hot_region_search_config_file = os.path.join(get_package_src_directory('hot_region_search'), 'configs', hot_region_search_config)
-with open(hot_region_search_config_file, 'r') as f:
-    config_data = json.load(f)
-try:
-    topology = config_data['topology']
-    if not topology or len(topology) != len(topology[0]) or not topology[0]:
-        raise KeyError('Topology is not defined')
-    VehicleNum = len(topology)
-except:
-    # 获取无人机数量
-    try:
-        # 获取用户输入
-        vehicle_num_input = input("Please input UAV swarm number: ")
-        
-        # 检查是否是整数
-        VehicleNum = int(vehicle_num_input)
-        
-        # 检查是否是正整数
-        if VehicleNum > 0:
-            # 检查是否超过最大数量
-            if VehicleNum > MAX_VEHICLE:
-                print(f"The vehicle number should be 1 - {MAX_VEHICLE}.")
-                sys.exit(0)
-        else:
-            print("Not a positive integer")
-            sys.exit(0)
-    except ValueError:
-        print("Not an integer")
-        sys.exit(0)
+hot_region_search_config_file = os.path.join(get_package_src_directory(
+    'hot_region_search'), 'configs', config_name_input)
+
+# 检查是否是正整数
+if os.path.exists(hot_region_search_config_file):
+    print(f"Using config file: {hot_region_search_config_file}")
+    with open(hot_region_search_config_file, 'r') as f:
+        config_data = json.load(f)
+        topology = config_data['topology']
+        if not topology or len(topology) != len(topology[0]) or not topology[0]:
+            raise KeyError('Topology is not defined')
+        VehicleNum = len(topology)
+else:
+    print(f"Config file {hot_region_search_config_file} does not exist")
+    sys.exit(0)
 
 req = ReqCopterSim.ReqCopterSim() # 获取局域网内所有CopterSim程序的电脑IP列表
 # VehicleNum = 5
